@@ -1,0 +1,19 @@
+AppName: api-demo
+HTTPPort: 8081
+RunMode: dev
+
+EnableAdmin: true
+AdminAddr: localhost
+AdminPort: 8088
+
+EnableDocs: true
+
+SessionOn: true
+SessionGCMaxLifetime: 15
+## 设置 session 的存储为mysql。注意需要提前创建出session表
+SessionProvider: mysql
+
+MysqlHost: 192.168.44.134
+MysqlPort: 3306
+MysqlUn: root
+MysqlPwd: mysql
