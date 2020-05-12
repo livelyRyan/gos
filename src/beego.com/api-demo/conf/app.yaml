@@ -9,7 +9,7 @@ AdminPort: 8088
 EnableDocs: true
 
 SessionOn: true
-SessionGCMaxLifetime: 15
+SessionGCMaxLifetime: 180
 ## 设置 session 的存储为mysql。注意需要提前创建出session表
 SessionProvider: mysql
 
