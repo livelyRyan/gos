@@ -4,10 +4,13 @@ import (
 	"beego.com/api-demo/models"
 	"encoding/json"
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/cache"
+	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/orm"
 	"net/http"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 // Operations about Emps
@@ -15,23 +18,45 @@ type EmpController struct {
 	beego.Controller
 }
 
+var ch cache.Cache
+
+func init() {
+	ch = cache.NewMemoryCache()
+}
+
 // @Title Get
-// @Description find object by objectid
-// @Param	objectId		path 	string	true		"the objectid you want to get"
-// @Success 200 {object} models.Object
+// @Description find object by empno
+// @Param	empno		path 	string	true		"the empno you want to get"
+// @Success 200 {object} models.Emp
 // @Failure 403 :objectId is empty
 // @router /:empno [get]
 func (c *EmpController) Get() {
 	empno := c.Ctx.Input.Param(":empno")
 	if empno != "" {
-		empno, err := strconv.ParseInt(empno, 10, 32)
+		// 从缓存中获取
+		emp := ch.Get(empno)
+		if emp != nil {
+			c.Data["json"] = emp
+			c.ServeJSON()
+			return
+		}
+
+		id, err := strconv.ParseInt(empno, 10, 32)
 		if err != nil {
 			c.Data["json"] = err.Error()
 			c.ServeJSON()
 			return
 		}
-		emp := &models.Emp{Id: int32(empno)}
+		emp = &models.Emp{Id: int32(id)}
 		err = orm.NewOrm().Read(emp)
+
+		if err == nil {
+			// 存入缓存
+			err = ch.Put(empno, emp, time.Hour)
+			if err != nil {
+				logs.Error("put cache value error: %v", err)
+			}
+		}
 		setReturnJson(c, emp, err)
 	}
 }

@@ -51,8 +51,8 @@ func init() {
 	db, err := orm.GetDB()
 	if err != nil {
 		logs.Error("orm.GetDB error :%v", err)
+		db.SetConnMaxLifetime(time.Minute * 60)
 	}
-	db.SetConnMaxLifetime(time.Minute * 60)
 
 	// 自动根据 struts 进行建表
 	// orm.RunSyncdb("default", true, false)
