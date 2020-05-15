@@ -14,7 +14,7 @@ func getMongoClient() (*mongo.Client, error) {
 	if mongoClient != nil {
 		return mongoClient, nil
 	}
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://192.168.1.160:27017"))
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://192.168.44.134:27017"))
 	if err != nil {
 		return nil, err
 	}

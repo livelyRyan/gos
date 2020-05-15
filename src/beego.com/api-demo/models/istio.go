@@ -124,6 +124,7 @@ func EstimateDocumentCount(opts ...*options.EstimatedDocumentCountOptions) (int6
 	return collection.EstimatedDocumentCount(context.Background(), opts...)
 }
 
+//GetYaml 从文件中获取yaml数据
 func GetYaml() (map[string]interface{}, error) {
 	buffer, err := ioutil.ReadFile("./crd/gateway.yaml")
 	if err != nil {
@@ -139,15 +140,6 @@ func GetYaml() (map[string]interface{}, error) {
 	return t, nil
 }
 
-type Label struct {
-	Version string
-}
-
-type Metadata_ struct {
-	Name   string
-	Labels Label
-}
-
 //InitDatabaseData 初始化数据库数据，当前验证阶段造10000条数据
 func InitDatabaseData() error {
 	t, err := GetYaml()
@@ -161,7 +153,7 @@ func InitDatabaseData() error {
 	}
 
 	for i := 0; i < 10000; i++ {
-		t["metadata"] = interface{}(Metadata_{"nginx-gateway", Label{fmt.Sprintf("v%d", i)}})
+		t["metadata"] = bson.D{{"name", "nginx-gateway"}, {"labels", bson.M{"version": fmt.Sprintf("v%d", i)}}}
 		_, err = collection.InsertOne(context.Background(), t)
 		if err != nil {
 			beego.Error("insert data to mongo failed,", err, "\n")

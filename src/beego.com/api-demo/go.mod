@@ -13,4 +13,4 @@ require (
 
 replace beego.com/api-demo v0.0.0 => ./
 
-go 1.14
+go 1.13

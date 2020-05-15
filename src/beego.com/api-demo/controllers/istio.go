@@ -1,11 +1,10 @@
 package controllers
 
 import (
+	"beego.com/api-demo/models"
 	"errors"
 	"fmt"
 	"strconv"
-
-	"beego.com/api-demo/models"
 
 	"github.com/astaxie/beego"
 	"go.mongodb.org/mongo-driver/bson"
@@ -21,60 +20,85 @@ func init() {
 	//models.InitDatabaseData()
 }
 
+//IstioController istio
 // Operations about istio
 type IstioController struct {
 	beego.Controller
 }
 
+//Post post function
 func (o *IstioController) Post() {
 
 }
 
+//Get 通过指定参数数据获取一条数据
 // @Title Get
 // @Description find istio crd by skip
-// @Param	page		path 	string	true		"the objectid you want to get"
-// @Success 200 {object} models.Object
-// @Failure 403 :objectId is empty
-// @router /:page [get]
+// @Param	version		path 	string	true		"The version of crd to query"
+// @Success 200 {object} crd
+// @Failure 403 :version is empty
+// @router /:version [get]
 func (o *IstioController) Get() {
-	skipStr := o.Ctx.Input.Param(":page")
-	skip, err := strconv.ParseInt(skipStr, 10, 64)
+	defer o.ServeJSON()
+	versionStr := o.Ctx.Input.Param(":version")
+	version, err := strconv.ParseInt(versionStr, 10, 64)
 	if err != nil {
 		beego.Error("get skip data failed,", err, "\n")
 		o.Data["json"] = err.Error()
-		o.ServeJSON()
 		return
 	}
-	limit, batch := int64(limit), int32(batchSize)
-	skip = skip * int64(batch)
-	results, err := models.Find(bson.D{}, &options.FindOptions{BatchSize: &batch, Limit: &limit, Skip: &skip})
-	beego.Debug("result count ", len(results), "\n")
-	o.Data["json"] = results
-	o.ServeJSON()
+	versionStr = fmt.Sprintf("v%d", version)
+	filter := bson.D{
+		{
+			"metadata", bson.D{
+				{"name", "nginx-gateway"},
+				{"labels", bson.D{
+					{"version", versionStr},
+				}},
+			},
+		},
+	}
+	result, err := models.FindOne(filter)
+	if err != nil {
+		beego.Error("get data from mongo failed,", err, "\n")
+		o.Data["json"] = err.Error
+		return
+	}
+	o.Data["json"] = result
 }
 
+//GetAll 获取数据
 // @Title GetAll
 // @Description get all istio crd
-// @Success 200 {object} models.Object
+// @Param	page	query	string	false	"which page to show. Must be an integer"
+// @Success 200 {object} crd
 // @Failure 403 :objectId is empty
 // @router / [get]
 func (o *IstioController) GetAll() {
-	totalCount, err := models.EstimateDocumentCount()
+	defer o.ServeJSON()
+	page := o.Ctx.Input.Query("page")
+	skip := int64(0)
+	if len(page) > 0 {
+		tempSkip, err := strconv.ParseInt(page, 10, 64)
+		if err != nil {
+			beego.Error("get page data failed,", err, "\n")
+			o.Data["json"] = err.Error()
+			return
+		}
+		skip = tempSkip * int64(batchSize)
+	}
+	limit, batch := int64(limit), int32(batchSize)
+	results, err := models.Find(bson.D{}, &options.FindOptions{BatchSize: &batch, Limit: &limit, Skip: &skip})
 	if err != nil {
-		beego.Error("get data count failed,", err, "\n")
-		o.Data["json"] = err.Error()
-		o.ServeJSON()
+		beego.Error("get data from mongo failed,", err, "\n")
+		o.Data["json"] = err.Error
 		return
 	}
-	beego.Debug("total count ", totalCount, "\n")
-	limit, skip, batch := int64(limit), int64(0), int32(batchSize)
-	results, err := models.Find(bson.D{}, &options.FindOptions{BatchSize: &batch, Limit: &limit, Skip: &skip})
 	beego.Debug("result count ", len(results), "\n")
 	o.Data["json"] = results
-	o.ServeJSON()
 }
 
-//DeleteOneVersion 删除一个版本的crd
+//DeleteOneByVersion 删除一个版本的crd
 func (o *IstioController) DeleteOneByVersion() {
 	version := o.Ctx.Input.Param(":version")
 	if len(version) == 0 {
@@ -109,7 +133,6 @@ func (o *IstioController) DeleteOneByVersion() {
 }
 
 //AddOneByVersion 增加一个版本的crd
-// @router /addOne/:version [post]
 func (o *IstioController) AddOneByVersion() {
 	version := o.Ctx.Input.Param(":version")
 	if len(version) == 0 {
@@ -124,7 +147,7 @@ func (o *IstioController) AddOneByVersion() {
 		o.ServeJSON()
 		return
 	}
-	crd["metadata"] = interface{}(models.Metadata_{"nginx-gateway", models.Label{version}})
+	crd["metadata"] = bson.D{{"name", "nginx-gateway"}, {"labels", bson.M{"version": version}}}
 	_, err = models.InsertOne(crd, &options.InsertOneOptions{})
 	if err != nil {
 		o.Data["json"] = err.Error()
