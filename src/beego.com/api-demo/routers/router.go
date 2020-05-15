@@ -40,6 +40,12 @@ func init() {
 				&controllers.GatewayController{},
 			),
 		),
+		beego.NSNamespace("/istio",
+			beego.NSInclude(
+				&controllers.IstioController{},
+			),
+			beego.NSRouter("/delete/:version", &controllers.IstioController{}, "get:DeleteOneByVersion"),
+		),
 	)
 	beego.AddNamespace(ns)
 

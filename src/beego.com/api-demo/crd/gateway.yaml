@@ -1,0 +1,47 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: nginx-gateway
+spec:
+  # 通过selector选择与该配置对应的网关组件
+  selector:
+    istio: ingressgateway
+  # 允许符合以下配置的流量进入服务网格并进行处理
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+    tls:
+      # 如果为true，网关组件会把所有请求进行301重定向，这要求进来的流量是https协议
+      httpsRedirect: false
+      # 网关开启tls的模式，可选值如下： 
+      # PASSTHROUGH：分别代表客户端提供的SNI字符串将用作VirtualService TLS路由中的匹配条件、
+      # SIMPLE：使用tls进行后端实例的连接
+      # MUTUAL：开启客户端服务端双向tls认证
+      # AUTO_PASSTHROUGH：与PASSTHROUGH类似，只是不需要与SNI字段相匹配的vs存在
+      # ISTIO_MUTUAL：基于istio实现的mTLS，证书均有istio生成，因此gateway.spec.servers.tls下的其他字段应都为空
+      mode: MUTUAL
+      serverCertificate: /etc/certs/sc.pom
+      privateKey: /etc/certs/key.pom
+      caCertificates: /etc/certs/ca.pom
+      credentialName: cert-secret
+      subjectAltNames:
+      - nginx.com
+      # 下面两个字段用于验证客户端证书的正确性，一般指定一个即可
+      # 授权客户端证书的SKPI的base64编码的SHA-256哈希值的可选列表
+      verifyCertificateSpki:
+      - a
+      # 授权客户端证书的十六进制编码SHA-256哈希值的可选列表
+      verifyCertificateHash:
+      - b
+      # 支持的tls的最低版本
+      minProtocolVersion: TLS_AUTO
+      # 支持的tls的最高版本
+      maxProtocolVersion: TLSV1_3
+      # 证书密码列表
+      cipherSuites:
+      - admin
+    defaultEndpoint: 192.168.10.155:80
